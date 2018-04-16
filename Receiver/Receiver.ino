@@ -1,9 +1,8 @@
 #include "nRF24L01.hpp"
 #include "ArduinoInterface.hpp"
+#include <U8x8lib.h>
 
 nRF24L01::Controller<nRF24L01::ArduinoInterface> *n;
-
-#include <U8x8lib.h>
 U8X8_SSD1306_128X64_NONAME_HW_I2C u8x8(/* reset=*/ U8X8_PIN_NONE);
 
 template <typename T> void printBits(T in) {
@@ -21,6 +20,29 @@ template <typename T> void printBitsu8x8(T in) {
     for (signed char g = s - 1; g >= 0; g--) {
         u8x8.print( ((in & (1 << ((unsigned char) g))) > 0) ? "1" : "0");
     }
+}
+
+void wirelessMic_setupTimer1() {
+    // Setup timer 1!
+    PRR = PRR & (~(1 << 3)); // Enable timer 1
+    TCCR1A = 0b00000000; // CTC mode
+    TCCR1B = TCCR1B & 0b00000000; // No prescaler, CTC Mode, noise canceller disabled
+    TCCR1B |= 0b01001;// NORMAL MODE unless 01001 THEN IT WILL BE CTC
+
+    // 363 for 44,077 Hz
+    unsigned int timerACompare = 362;
+    byte upper = ((timerACompare & 0xFF00) >> 8);
+    byte lower = timerACompare & 0xFF;
+
+    // The value for A will reset the counter
+    OCR1AH = upper;
+    OCR1AL = lower;
+    // Same value for B because that triggers the ADC
+    OCR1BH = upper;
+    OCR1BL = lower;
+
+    // Enable output compare A
+    TIMSK1 = (1 << 2);
 }
 
 volatile byte lastPacketSize = 0;

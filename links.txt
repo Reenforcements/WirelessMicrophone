@@ -7,3 +7,5 @@ Arduino Nano pinout:
 	https://forum.arduino.cc/index.php?topic=147582.0
 SPI Library:
 	https://www.arduino.cc/en/Reference/SPI
+ATMega 328p Datasheet:
+	http://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-42735-8-bit-AVR-Microcontroller-ATmega328-328P_Datasheet.pdf

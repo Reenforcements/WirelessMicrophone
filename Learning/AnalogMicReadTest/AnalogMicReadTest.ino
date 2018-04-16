@@ -8,6 +8,7 @@ template <typename T> void printBits(T in) {
 }
 
 void wirelessMic_setupADC() {
+    // A2 needs to be an input.
     pinMode(A2, INPUT);
     // Lets see if we can get the multiplexer to select this input
     //  without messing with the registers by calling analogRead.
@@ -17,37 +18,32 @@ void wirelessMic_setupADC() {
     //  takes 25 ADC clock cycles in order to initialize the analog circuitry.
 
     // We want the result to be left adjusted so we can get an 8 bit result in one swoop
-    byte ADLARbit = (1 << 5);
-    ADMUX |= ADLARbit;
+    ADMUX |= (1 << ADLAR);
 
     // Do a conversion to initialize things
-    ADCSRA |= (1 << 7); // ADEN
-    ADCSRA |= (1 << 6); // ADSC
+    ADCSRA |= (1 << ADEN); // ADEN
+    ADCSRA |= (1 << ADSC); // ADSC
     delayMicroseconds(20);
 
-    //printBits(CLKPR);
     // Bits 2:0 – ADPSn: ADC Prescale r Select [n = 2:0]
     // (Clear and set)
     ADCSRA = ADCSRA & (0b11111000);
     ADCSRA |= 0b100; //100 = divide input clock by 16
     // Enable ADC Interrupt
-    ADCSRA |= (1 << 3); // ADIE
+    ADCSRA |= (1 << ADIE);
     // Select timer 0 for triggering the ADC
     // Do Timer 0 compare match A
     ADCSRB = ADCSRB & (0b11111000);
     ADCSRB |= 0b101; //0b101 Timer/Counter1 Compare Match B
     // Enable auto triggering of ADC conversions
-    ADCSRA |= (1 << 5); // ADATE
-    printBits(ADCSRA);
+    ADCSRA |= (1 << ADATE);
 }
 void wirelessMic_setupTimer1() {
-
     // Setup timer 1!
     PRR = PRR & (~(1 << 3)); // Enable timer 1
     TCCR1A = 0b00000000; // CTC mode
     TCCR1B = TCCR1B & 0b00000000; // No prescaler, CTC Mode, noise canceller disabled
     TCCR1B |= 0b01001;// NORMAL MODE unless 01001 THEN IT WILL BE CTC
-    //TIFR1 = 0;
 
     // 363 for 44,077 Hz
     unsigned int timerACompare = 362;
@@ -61,9 +57,8 @@ void wirelessMic_setupTimer1() {
     // Same value for B because that triggers the ADC
     OCR1BH = upper;
     OCR1BL = lower;
-    //Serial.println(OCR1BL);
-    //Serial.println(OCR1BH);
 
+    // Enable output compare A
     TIMSK1 = (1 << 2);
 }
 

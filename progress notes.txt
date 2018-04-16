@@ -1,0 +1,3 @@
+Timer things need to be initialized in a specific order
+
+Will need to update my library to allow uploading bytes one at a time to make the send operation take less time
