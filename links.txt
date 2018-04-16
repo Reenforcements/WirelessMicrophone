@@ -1,0 +1,9 @@
+Github:
+	https://github.com/Reenforcements/WirelessMicrophone
+Digital potentiometer/datasheet:
+	http://www.microchip.com/wwwproducts/en/MCP4151
+	https://www.mouser.com/datasheet/2/268/22060a-53835.pdf
+Arduino Nano pinout:
+	https://forum.arduino.cc/index.php?topic=147582.0
+SPI Library:
+	https://www.arduino.cc/en/Reference/SPI
