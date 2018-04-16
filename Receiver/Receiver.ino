@@ -1,5 +1,6 @@
 #include "nRF24L01.hpp"
 #include "ArduinoInterface.hpp"
+#include "SPI.h"
 #include <U8x8lib.h>
 
 nRF24L01::Controller<nRF24L01::ArduinoInterface> *n;
@@ -20,6 +21,17 @@ template <typename T> void printBitsu8x8(T in) {
     for (signed char g = s - 1; g >= 0; g--) {
         u8x8.print( ((in & (1 << ((unsigned char) g))) > 0) ? "1" : "0");
     }
+}
+
+const byte MCP_CSN = 4;
+void changeValue(byte val) {
+    SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0));
+    digitalWrite(MCP_CSN, LOW);
+    int toTransfer = 0x00FF & val;
+    SPI.transfer16(toTransfer);
+    printBits(toTransfer);
+    digitalWrite(MCP_CSN, HIGH);
+    SPI.endTransaction();
 }
 
 void wirelessMic_setupTimer1() {
@@ -45,6 +57,14 @@ void wirelessMic_setupTimer1() {
     TIMSK1 = (1 << 2);
 }
 
+ISR(TIMER1_COMPA_vect) {
+    // Must be here or the Arduino will explode internally.
+    changeValue(231);
+}
+ISR(TIMER1_COMPB_vect) {
+    // Must be here or the Arduino will explode internally.
+}
+
 volatile byte lastPacketSize = 0;
 volatile unsigned char dataOut[32];
 volatile unsigned long bytesTransferred = 0;
@@ -64,12 +84,13 @@ void nrfInterrupt() {
 }
 
 void setup() {
-    // put your setup code here, to run once:
+    // Set up the OLED display
     u8x8.begin();
     u8x8.setPowerSave(0);
     u8x8.setFont(u8x8_font_chroma48medium8_r);
     u8x8.drawString(0, 0, "Powering up...");
-    
+
+    // nRF24L01+ setup
     attachInterrupt(digitalPinToInterrupt(2), nrfInterrupt, FALLING);
 
     n = new nRF24L01::Controller<nRF24L01::ArduinoInterface>(8, 2, 10);
@@ -87,7 +108,14 @@ void setup() {
     n->setCRCEnabled(false);
 
     n->readAndClearInterruptBits();
+
+    // MCP Digital pot setup
+    pinMode(MCP_CSN, OUTPUT);
+    digitalWrite(MCP_CSN, HIGH);
+    // SPI should already be enabled from transceiver setup
 }
+
+long lastMeasureReset = 2000;
 void loop() {
     // put your main code here, to run repeatedly:
     delay(250);
@@ -108,7 +136,11 @@ void loop() {
     u8x8.clearLine(2);
     u8x8.setCursor(0, 2);
     unsigned char stat = (n->getStatusAndConfigRegisters() >> 8);
-    u8x8.print( (double) bytesTransferred / ( ((double) millis()) / 1000.0) );
+    if( millis() > (lastMeasureReset + 3000) ) {
+        bytesTransferred = 0;
+        lastMeasureReset = millis(); 
+    }
+    u8x8.print( (double) bytesTransferred / ( ((double) (millis() - lastMeasureReset)) / 1000.0) );
     u8x8.clearLine(3);
     u8x8.setCursor(0, 3);
     printBitsu8x8(stat);

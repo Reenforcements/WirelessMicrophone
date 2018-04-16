@@ -97,7 +97,7 @@ ISR(TIMER1_COMPB_vect) {
 volatile unsigned char lastInterruptBits = 0;
 void nrfInterrupt() {
     // Read and clear the interrupt bits.
-    n->concludeSendingPacket();
+    //n->concludeSendingPacket();
     n->readAndClearInterruptBits();
     // Set the current byte to zero.
     //currentAudioByte = 0;
@@ -131,6 +131,7 @@ void setup() {
     n->setAutoRetransmitCount(0);
     n->setCRCEnabled(false);
     n->readAndClearInterruptBits();
+    n->enableCEPin();
 
     wirelessMic_setupADC();
     wirelessMic_setupTimer1();

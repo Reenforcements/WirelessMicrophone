@@ -9,3 +9,5 @@ SPI Library:
 	https://www.arduino.cc/en/Reference/SPI
 ATMega 328p Datasheet:
 	http://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-42735-8-bit-AVR-Microcontroller-ATmega328-328P_Datasheet.pdf
+OP AMP:
+	http://www.ti.com/lit/ds/symlink/lm358-n.pdf
