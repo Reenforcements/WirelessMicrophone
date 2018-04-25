@@ -20,7 +20,8 @@ void wirelessMic_setupADC() {
     //  without messing with the registers by calling analogRead.
     analogRead(A2);
     //A normal conversion takes 13 ADC clock cycles.
-    //The first conversion after the ADC is switched on (i.e., ADCSRA.ADEN is written to '1')
+    //The first conversion after the ADC 
+    //  is switched on (i.e., ADCSRA.ADEN is written to '1')
     //  takes 25 ADC clock cycles in order to initialize the analog circuitry.
 
     // We want the result to be left adjusted so we can get an 8 bit result in one swoop
@@ -65,7 +66,7 @@ void wirelessMic_setupTimer1() {
     OCR1BH = upper;
     OCR1BL = lower;
 
-    // Enable output compare A
+    // Enable output compare B
     TIMSK1 = (1 << 2);
 }
 
@@ -75,8 +76,14 @@ volatile bool readyForMore = true;
 volatile unsigned long sendCounter = 0;
 volatile unsigned long readCounter = 0;
 ISR(ADC_vect) {
-    //byte high = ADCH;
+
+    //Test sine
+    //float t = (((float)millis()) / 1000.0) * 3.0;
+    //byte towrite = byte( (sin(t) + 1.0) * 127.0 );
+    //audioBytes[ currentAudioByte & 0b00011111 ] = towrite;
+    
     audioBytes[ currentAudioByte & 0b00011111 ] = ADCH;
+    //Serial.println(towrite);
 
     currentAudioByte++;
     readCounter++;
@@ -128,7 +135,7 @@ void setup() {
     n->setAutoAcknowledgementEnabled(false);
     n->setUsesDynamicPayloadLength(false);
     n->setBitrate(2);
-    n->setAutoRetransmitCount(0);
+    n->setAutoRetransmitCount(0); 
     n->setCRCEnabled(false);
     n->readAndClearInterruptBits();
     n->enableCEPin();
@@ -138,15 +145,15 @@ void setup() {
 }
 long lastPrint = millis();
 void loop() {
-    if (millis() > (lastPrint + 1000)) {
-        lastPrint = millis();
-        Serial.print("Bytes sent: ");
-        Serial.print(sendCounter);
-        Serial.print(" Bytes ADC'd:");
-        Serial.println(readCounter);
-        sendCounter = 0;
-        readCounter = 0;
-    }
+//    if (millis() > (lastPrint + 1000)) {
+//        lastPrint = millis();
+//        Serial.print("Bytes sent: ");
+//        Serial.print(sendCounter);
+//        Serial.print(" Bytes ADC'd:");
+//        Serial.println(readCounter);
+//        sendCounter = 0;
+//        readCounter = 0;
+//    }
 
     //while (currentAudioByte != 32);
     //n->startSendingPacket((unsigned char*) audioBytes, 32);

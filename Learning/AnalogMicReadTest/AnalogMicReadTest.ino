@@ -58,7 +58,7 @@ void wirelessMic_setupTimer1() {
     OCR1BH = upper;
     OCR1BL = lower;
 
-    // Enable output compare A
+    // Enable output compare B
     TIMSK1 = (1 << 2);
 }
 

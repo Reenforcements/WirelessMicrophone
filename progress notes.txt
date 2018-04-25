@@ -1,3 +1,5 @@
 Timer things need to be initialized in a specific order
 
 Will need to update my library to allow uploading bytes one at a time to make the send operation take less time
+
+Marking the 32 byte counter on the receiver as volatile and modifying it in a different interrupt provided a very significant bottleneck. Or wait, it might've just been overflowing and taking values from hyperspace

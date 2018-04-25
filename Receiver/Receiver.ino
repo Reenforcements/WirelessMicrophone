@@ -29,7 +29,6 @@ void changeValue(byte val) {
     digitalWrite(MCP_CSN, LOW);
     int toTransfer = 0x00FF & val;
     SPI.transfer16(toTransfer);
-    printBits(toTransfer);
     digitalWrite(MCP_CSN, HIGH);
     SPI.endTransaction();
 }
@@ -41,7 +40,7 @@ void wirelessMic_setupTimer1() {
     TCCR1B = TCCR1B & 0b00000000; // No prescaler, CTC Mode, noise canceller disabled
     TCCR1B |= 0b01001;// NORMAL MODE unless 01001 THEN IT WILL BE CTC
 
-    // 363 for 44,077 Hz
+    // 363 or 362 for 44,077 Hz
     unsigned int timerACompare = 362;
     byte upper = ((timerACompare & 0xFF00) >> 8);
     byte lower = timerACompare & 0xFF;
@@ -54,13 +53,9 @@ void wirelessMic_setupTimer1() {
     OCR1BL = lower;
 
     // Enable output compare A
-    TIMSK1 = (1 << 2);
+    TIMSK1 = (1 << 1);
 }
 
-ISR(TIMER1_COMPA_vect) {
-    // Must be here or the Arduino will explode internally.
-    changeValue(231);
-}
 ISR(TIMER1_COMPB_vect) {
     // Must be here or the Arduino will explode internally.
 }
@@ -69,11 +64,20 @@ volatile byte lastPacketSize = 0;
 volatile unsigned char dataOut[32];
 volatile unsigned long bytesTransferred = 0;
 volatile unsigned long lastMillis = millis();
+volatile byte lastWritten = 0;
 void readData() {
     unsigned char packetSize = n->getNextPacketSize();
-    lastPacketSize = packetSize;
-    n->readData((unsigned char *)dataOut, lastPacketSize);
-    bytesTransferred += 32;
+    //lastPacketSize = packetSize;
+    n->readData((unsigned char *)dataOut, packetSize);
+    //bytesTransferred += 32;
+    lastWritten = 0;
+}
+//byte lastWritten = 0;
+ISR(TIMER1_COMPA_vect) {
+    // Must be here or the Arduino will explode internally.
+    changeValue(dataOut[0b00011111 & lastWritten]);
+    //Serial.println(dataOut[lastWritten]);
+    lastWritten++;
 }
 void nrfInterrupt() {
     // Get and clear the interrupt bits.
@@ -113,10 +117,14 @@ void setup() {
     pinMode(MCP_CSN, OUTPUT);
     digitalWrite(MCP_CSN, HIGH);
     // SPI should already be enabled from transceiver setup
+    //Serial.begin(57600);
+    wirelessMic_setupTimer1();
 }
 
 long lastMeasureReset = 2000;
 void loop() {
+    //Serial.println(dataOut[lastWritten]);
+    return;
     // put your main code here, to run repeatedly:
     delay(250);
     
@@ -140,7 +148,8 @@ void loop() {
         bytesTransferred = 0;
         lastMeasureReset = millis(); 
     }
-    u8x8.print( (double) bytesTransferred / ( ((double) (millis() - lastMeasureReset)) / 1000.0) );
+    u8x8.print( (double) bytesTransferred / 
+    ( ((double) (millis() - lastMeasureReset)) / 1000.0) );
     u8x8.clearLine(3);
     u8x8.setCursor(0, 3);
     printBitsu8x8(stat);
