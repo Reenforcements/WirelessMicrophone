@@ -3,3 +3,18 @@ Timer things need to be initialized in a specific order
 Will need to update my library to allow uploading bytes one at a time to make the send operation take less time
 
 Marking the 32 byte counter on the receiver as volatile and modifying it in a different interrupt provided a very significant bottleneck. Or wait, it might've just been overflowing and taking values from hyperspace
+
+I believe the "crackling" in the output is caused by noise in transmission. We don't CRC packets so we don't guard against this. Turning on the CRC had a positive effect and eliminated the crackling. I might leave it on even though it will mess with the homogeneousness of the packet stream, but then again, its not homogeneous in the first place, so might as well not have crackling in the output!
+
+I changed all the digital writes to just access PORTB and PORTC
+
+If the mic stops working, unplug the device and plug it back in. To break it, reconnect the nRF power regulator.
+
+Losing about one byte per packet. I don't know why yet.
+(29144/30080) * 32 = 31.0042553191
+
+I've deducted the output seems to be working fine. I narrowed it down to sender input and timing issues.
+
+The high pitched screeching is annoying
+
+ITS THE SPI DATA LINE AAAA. Can I make SPI only run when the ADC isn't?

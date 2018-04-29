@@ -1,8 +1,9 @@
 
 #include "nRF24L01.hpp"
+#include "FastInterface.hpp"
 #include "ArduinoInterface.hpp"
 
-nRF24L01::Controller<nRF24L01::ArduinoInterface> *n;
+nRF24L01::Controller<FastInterface> *n;
 
 //template <typename T> void //printBits(T in) {
 //    unsigned char s = sizeof(T) * 8;
@@ -35,7 +36,7 @@ void wirelessMic_setupADC() {
     // Bits 2:0 – ADPSn: ADC Prescale r Select [n = 2:0]
     // (Clear and set)
     ADCSRA = ADCSRA & (0b11111000);
-    ADCSRA |= 0b100; //100 = divide input clock by 16 (011 for 8)
+    ADCSRA |= 0b011; //100 = divide input clock by 16 (011 for 8)
     // Enable ADC Interrupt
     ADCSRA |= (1 << ADIE);
     // Select timer 0 for triggering the ADC
@@ -53,7 +54,7 @@ void wirelessMic_setupTimer1() {
     TCCR1B |= 0b01001;// NORMAL MODE unless 01001 THEN IT WILL BE CTC
 
     // 363 for 44,077 Hz
-    unsigned int timerACompare = 300;
+    unsigned int timerACompare = 363;
     byte upper = ((timerACompare & 0xFF00) >> 8);
     byte lower = timerACompare & 0xFF;
 
@@ -70,28 +71,30 @@ void wirelessMic_setupTimer1() {
     TIMSK1 = (1 << 2);
 }
 
-volatile byte audioBytes[32];
+volatile byte audioBytes[16];
 volatile byte currentAudioByte = 0;
-volatile bool readyForMore = true;
+volatile byte numberOfPackets = 0;
+//volatile bool readyForMore = true;
 volatile unsigned long sendCounter = 0;
 volatile unsigned long readCounter = 0;
+volatile byte triangle = 0;
 ISR(ADC_vect) {
-
-    //Test sine
-    //float t = (((float)millis()) / 1000.0) * 3.0;
-    //byte towrite = byte( (sin(t) + 1.0) * 127.0 );
-    //audioBytes[ currentAudioByte & 0b00011111 ] = towrite;
-    
     audioBytes[ currentAudioByte & 0b00011111 ] = ADCH;
-    //Serial.println(towrite);
 
     currentAudioByte++;
     readCounter++;
 
-    if (currentAudioByte == 32 && readyForMore == true) {
-        n->startSendingPacket((unsigned char*) audioBytes, 32);
+    // If we have 16 bytes, upload them to the nRF
+    if (currentAudioByte == 16) {
+        n->startSendingPacket((unsigned char*) audioBytes, 16);
         currentAudioByte = 0;
-        readyForMore = false;
+        
+        numberOfPackets++;
+        
+        // If we have 3 packets, send them to the receiver
+        if(numberOfPackets == 3) {
+            n->enableCEPin();
+        }
     }
 }
 ISR(TIMER1_COMPA_vect) {
@@ -99,16 +102,16 @@ ISR(TIMER1_COMPA_vect) {
 }
 ISR(TIMER1_COMPB_vect) {
     // Must be here or the Arduino will explode internally.
+    
 }
 
 volatile unsigned char lastInterruptBits = 0;
 void nrfInterrupt() {
     // Read and clear the interrupt bits.
-    //n->concludeSendingPacket();
     n->readAndClearInterruptBits();
+    n->concludeSendingPacket();
     // Set the current byte to zero.
     //currentAudioByte = 0;
-    readyForMore = true;
     sendCounter += 32;
 }
 
@@ -116,7 +119,7 @@ void setup() {
     delay(100);
     Serial.begin(57600);
 
-    n = new nRF24L01::Controller<nRF24L01::ArduinoInterface>(8, 2, 10);
+    n = new nRF24L01::Controller<FastInterface>(8, 2, 10);
 
     digitalWrite(A2, HIGH);
     pinMode(A3, INPUT);
@@ -135,8 +138,9 @@ void setup() {
     n->setAutoAcknowledgementEnabled(false);
     n->setUsesDynamicPayloadLength(false);
     n->setBitrate(2);
-    n->setAutoRetransmitCount(0); 
-    n->setCRCEnabled(false);
+    //n->setRFPower(3);
+    n->setAutoRetransmitCount(0);
+    n->setCRCEnabled(true);
     n->readAndClearInterruptBits();
     n->enableCEPin();
 
@@ -145,15 +149,15 @@ void setup() {
 }
 long lastPrint = millis();
 void loop() {
-//    if (millis() > (lastPrint + 1000)) {
-//        lastPrint = millis();
-//        Serial.print("Bytes sent: ");
-//        Serial.print(sendCounter);
-//        Serial.print(" Bytes ADC'd:");
-//        Serial.println(readCounter);
-//        sendCounter = 0;
-//        readCounter = 0;
-//    }
+    if (millis() > (lastPrint + 1000)) {
+        lastPrint = millis();
+        Serial.print("Bytes sent: ");
+        Serial.print(sendCounter);
+        Serial.print(" Bytes ADC'd:");
+        Serial.println(readCounter);
+        sendCounter = 0;
+        readCounter = 0;
+    }
 
     //while (currentAudioByte != 32);
     //n->startSendingPacket((unsigned char*) audioBytes, 32);
