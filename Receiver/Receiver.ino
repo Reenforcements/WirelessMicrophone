@@ -59,11 +59,11 @@ void wirelessMic_setupTimer1() {
 
 
 
-
+volatile bool upper = false;
 volatile unsigned long writtenCount = 0;
 volatile byte lastPacketSize = 0;
 volatile unsigned char currentPacket = 0;
-volatile unsigned char dataOut[48];
+volatile unsigned char dataOut[96];
 volatile unsigned long bytesTransferred = 0;
 volatile unsigned long lastMillis = millis();
 volatile byte lastWritten = 0;
@@ -71,25 +71,27 @@ inline void writeAValue() {
     if (lastWritten >= 48)
         return;
         
-    changeValue(dataOut[lastWritten]);
+    changeValue(dataOut[lastWritten + ((upper) ? 0 : 48) ]);
 
     lastWritten++;
-    //if (lastWritten >= 48)
-    //    lastWritten = 0;
-
     writtenCount++;
 }
 void readData() {
     unsigned char packetSize = n->getNextPacketSize();
 
-    n->readData((unsigned char *)(dataOut + currentPacket), packetSize);
+    if(upper) {
+        n->readData((unsigned char *)(dataOut + currentPacket + 48), packetSize);
+    } else {
+        n->readData((unsigned char *)(dataOut + currentPacket), packetSize);
+    }
+        
+        
     currentPacket += 16;
     if (currentPacket == 48)
     {
         lastWritten = 0;
         currentPacket = 0;
-        //TCNT1H = 0;
-        //TCNT1L = 0;
+        upper = !upper;
     }
 
     bytesTransferred += 16;
