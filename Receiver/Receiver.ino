@@ -68,11 +68,14 @@ volatile unsigned long bytesTransferred = 0;
 volatile unsigned long lastMillis = millis();
 volatile byte lastWritten = 0;
 inline void writeAValue() {
+    if (lastWritten >= 48)
+        return;
+        
     changeValue(dataOut[lastWritten]);
 
     lastWritten++;
-    if (lastWritten >= 48)
-        lastWritten = 0;
+    //if (lastWritten >= 48)
+    //    lastWritten = 0;
 
     writtenCount++;
 }
@@ -83,8 +86,10 @@ void readData() {
     currentPacket += 16;
     if (currentPacket == 48)
     {
+        lastWritten = 0;
         currentPacket = 0;
-
+        //TCNT1H = 0;
+        //TCNT1L = 0;
     }
 
     bytesTransferred += 16;
