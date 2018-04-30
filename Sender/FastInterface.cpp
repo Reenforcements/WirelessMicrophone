@@ -46,7 +46,7 @@ inline void FastInterface::writeCSNHigh() {
 }
 inline void FastInterface::writeCSNLow() {
     //digitalWrite(_CSNPin, LOW);
-    PORTB ^= (1 << 2);
+    PORTB &= ~(1 << 2);
 }
 inline void FastInterface::writeCEHigh() {
     //digitalWrite(_CEPin, HIGH);
@@ -54,7 +54,7 @@ inline void FastInterface::writeCEHigh() {
 }
 inline void FastInterface::writeCELow() {
     //digitalWrite(_CEPin, LOW);
-    PORTB ^= 1;
+    PORTB &= ~(1);
 }
 
 

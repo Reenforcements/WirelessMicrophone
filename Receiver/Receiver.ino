@@ -25,14 +25,12 @@ template <typename T> void printBitsu8x8(T in) {
 }
 
 const byte MCP_CSN = 4;
-int MCPtoTransfer = 0;
 void changeValue(byte val) {
     SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0));
-    PORTD ^= (1 << 4);
-    MCPtoTransfer = 0x00FF & val;
+    PORTD &= ~(1 << 4);
+    int MCPtoTransfer = 0x00FF & val;
     SPI.transfer16(MCPtoTransfer);
-    PORTD ^= (1 << 4);
-
+    PORTD |= (1 << 4);
     SPI.endTransaction();
 }
 
@@ -40,11 +38,11 @@ void wirelessMic_setupTimer1() {
     // Setup timer 1!
     PRR = PRR & (~(1 << 3)); // Enable timer 1
     TCCR1A = 0b00000000; // CTC mode
-    TCCR1B = TCCR1B & 0b00000000; // No prescaler, CTC Mode, noise canceller disabled
+    TCCR1B = TCCR1B & 0b00000000; // No prescaler, CTC Mode, noise cancel dis
     TCCR1B |= 0b01001;// NORMAL MODE unless 01001 THEN IT WILL BE CTC
 
     // 363 or 362 for 44,077 Hz
-    unsigned int timerACompare = 500;
+    unsigned int timerACompare = 363;
     byte upper = ((timerACompare & 0xFF00) >> 8);
     byte lower = timerACompare & 0xFF;
 
@@ -62,10 +60,10 @@ void wirelessMic_setupTimer1() {
 
 
 
-bool first = true;
-volatile unsigned int writtenCount = 0;
+volatile unsigned long writtenCount = 0;
 volatile byte lastPacketSize = 0;
-volatile unsigned char dataOut[64];
+volatile unsigned char currentPacket = 0;
+volatile unsigned char dataOut[48];
 volatile unsigned long bytesTransferred = 0;
 volatile unsigned long lastMillis = millis();
 volatile byte lastWritten = 0;
@@ -73,7 +71,7 @@ void writeAValue() {
     changeValue(dataOut[0b00111111 & lastWritten]);
 
     lastWritten++;
-    if (lastWritten >= 63)
+    if (lastWritten >= 47)
         lastWritten = 0;
 
     writtenCount++;
@@ -81,21 +79,20 @@ void writeAValue() {
 void readData() {
     unsigned char packetSize = n->getNextPacketSize();
 
-    if (first) {
-        n->readData((unsigned char *)(dataOut), packetSize);
-    }
-    else {
-        n->readData((unsigned char *)(dataOut + 32), packetSize);
-    }
-    first = !first;
+    n->readData((unsigned char *)(dataOut + currentPacket), packetSize);
+    currentPacket += 16;
+    if (currentPacket == 48)
+        currentPacket = 0;
 
-    bytesTransferred += 32;
-    writeAValue();
+    bytesTransferred += 16;
+    //writeAValue();
 }
-//byte lastWritten = 0;
 
 ISR(TIMER1_COMPA_vect) {
     writeAValue();
+}
+ISR(TIMER1_COMPB_vect) {
+
 }
 void nrfInterrupt() {
     // Get and clear the interrupt bits.
@@ -126,7 +123,7 @@ void setup() {
     n->setAutoAcknowledgementEnabled(false);
     n->setUsesDynamicPayloadLength(false);
     n->setBitrate(2);
-    n->setReceivedPacketLength(32);
+    n->setReceivedPacketLength(16);
     n->setCRCEnabled(true);
 
     n->readAndClearInterruptBits();
@@ -140,62 +137,42 @@ void setup() {
         dataOut[i] = 0;
     }
     wirelessMic_setupTimer1();
-    Serial.begin(57600);
     changeValue(0);
+    // Stops the program from freezing when
+    //  writing to the MCP
+    SPI.usingInterrupt(0x0016);
+
+    // Test signal
+    pinMode(5, OUTPUT);
+    analogWrite(5, 127);
 }
 
 long lastMeasureReset = 2000;
 long lastPrint = millis();
 void loop() {
     
-    //Serial.println(dataOut[lastWritten]);
-    //if (millis() > (lastPrint + 1000)) {
-    //lastPrint = millis();
-    Serial.print("Bytes read: ");
-    Serial.print(bytesTransferred);
-    Serial.print(" Bytes output:");
-    Serial.println(writtenCount);
-    //
-    //        if (Serial.available() >= 2) {
-    //
-    //            unsigned int timerACompare = Serial.parseInt();
-    //            byte upper = ((timerACompare & 0xFF00) >> 8);
-    //            byte lower = timerACompare & 0xFF;
-    //
-    //            // The value for A will reset the counter
-    //            OCR1AH = upper;
-    //            OCR1AL = lower;
-    //        }
-    bytesTransferred = 0;
-    writtenCount = 0;
-    //}
-    delay(1000);
-    return;
-    // put your main code here, to run repeatedly:
     delay(250);
-
     lastMillis = millis();
 
-
+    // Total bytes transferred
     u8x8.clearLine(0);
     u8x8.setCursor(0, 0);
-    //u8x8.print(  ((int)dataOut[0]) + (((int)dataOut[1]) << 8)  );
     u8x8.print(bytesTransferred);
 
+    // LastMillis
     u8x8.clearLine(1);
     u8x8.setCursor(0, 1);
-    u8x8.print("lm:");
+    u8x8.print("LM:");
     u8x8.print(lastMillis);
 
+    // Bytes/second
     u8x8.clearLine(2);
     u8x8.setCursor(0, 2);
+    u8x8.print( (float) bytesTransferred /
+                ( ((float) (millis() - lastMeasureReset)) / 1000.0) );
+
+    // Status register
     unsigned char stat = (n->getStatusAndConfigRegisters() >> 8);
-    if ( millis() > (lastMeasureReset + 3000) ) {
-        bytesTransferred = 0;
-        lastMeasureReset = millis();
-    }
-    u8x8.print( (double) bytesTransferred /
-                ( ((double) (millis() - lastMeasureReset)) / 1000.0) );
     u8x8.clearLine(3);
     u8x8.setCursor(0, 3);
     printBitsu8x8(stat);
@@ -205,18 +182,21 @@ void loop() {
     u8x8.clearLine(5);
     u8x8.setCursor(0, 5);
     unsigned char fifo = n->getFIFOStatus();
-    //unsigned char g = ADCSRA;
     printBitsu8x8(fifo);
-
-    if (n->dataInRXFIFO()) {
-        readData();
-    }
 
     u8x8.clearLine(6);
     u8x8.setCursor(0, 6);
-    u8x8.print(lastPacketSize, DEC);
+    u8x8.print( (float) writtenCount /
+                ( ((float) (millis() - lastMeasureReset)) / 1000.0) );
 
-    //    stat = stat >> 1;
-    //    u8x8.setCursor(0, 2);
-    //    u8x8.print(stat);
+    if ( millis() > (lastMeasureReset + 3000) ) {
+        bytesTransferred = 0;
+        writtenCount = 0;
+        lastMeasureReset = millis();
+    }
+
+    // Straggler data
+    if (n->dataInRXFIFO()) {
+        readData();
+    }
 }

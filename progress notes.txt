@@ -18,3 +18,8 @@ I've deducted the output seems to be working fine. I narrowed it down to sender 
 The high pitched screeching is annoying
 
 ITS THE SPI DATA LINE AAAA. Can I make SPI only run when the ADC isn't?
+
+Serial has started breaking on me. I think if I try to print too much at once it just poops out a 1 or 0 and then gives up XD. I believe this is related to the timers. I'm going to try an LCD display for debug output and see if that's faster.
+
+Good news. Screeching from hell is gone since I figured out timings and made the analog run at a different time than the radio SPI. I also ditched nRF interrupts on the Sender to make sure no SPI happened during an ADC conversion.
+
