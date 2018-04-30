@@ -25,7 +25,7 @@ template <typename T> void printBitsu8x8(T in) {
 }
 
 const byte MCP_CSN = 4;
-void changeValue(byte val) {
+inline void changeValue(byte val) {
     SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0));
     PORTD &= ~(1 << 4);
     int MCPtoTransfer = 0x00FF & val;
@@ -42,7 +42,7 @@ void wirelessMic_setupTimer1() {
     TCCR1B |= 0b01001;// NORMAL MODE unless 01001 THEN IT WILL BE CTC
 
     // 363 or 362 for 44,077 Hz
-    unsigned int timerACompare = 363;
+    unsigned int timerACompare = 800;
     byte upper = ((timerACompare & 0xFF00) >> 8);
     byte lower = timerACompare & 0xFF;
 
@@ -67,11 +67,11 @@ volatile unsigned char dataOut[48];
 volatile unsigned long bytesTransferred = 0;
 volatile unsigned long lastMillis = millis();
 volatile byte lastWritten = 0;
-void writeAValue() {
-    changeValue(dataOut[0b00111111 & lastWritten]);
+inline void writeAValue() {
+    changeValue(dataOut[lastWritten]);
 
     lastWritten++;
-    if (lastWritten >= 47)
+    if (lastWritten >= 48)
         lastWritten = 0;
 
     writtenCount++;
@@ -82,7 +82,10 @@ void readData() {
     n->readData((unsigned char *)(dataOut + currentPacket), packetSize);
     currentPacket += 16;
     if (currentPacket == 48)
+    {
         currentPacket = 0;
+
+    }
 
     bytesTransferred += 16;
     //writeAValue();
@@ -90,6 +93,9 @@ void readData() {
 
 ISR(TIMER1_COMPA_vect) {
     writeAValue();
+    if (n->dataInRXFIFO()) {
+        readData();
+    }
 }
 ISR(TIMER1_COMPB_vect) {
 
@@ -110,7 +116,7 @@ void setup() {
     u8x8.drawString(0, 0, "Powering up...");
 
     // nRF24L01+ setup
-    attachInterrupt(digitalPinToInterrupt(2), nrfInterrupt, FALLING);
+    //attachInterrupt(digitalPinToInterrupt(2), nrfInterrupt, FALLING);
 
     n = new nRF24L01::Controller<FastInterface>(8, 2, 10);
     n->setPoweredUp(true);

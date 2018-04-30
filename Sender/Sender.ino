@@ -57,7 +57,7 @@ void wirelessMic_setupTimer1() {
     TCCR1B |= 0b01001;// NORMAL MODE unless 01 (CTC) 001 (clock/1) THEN IT WILL BE CTC
 
     // 363 for 44,077 Hz
-    unsigned int timerACompare = 363;
+    unsigned int timerACompare = 800;
     byte upper = ((timerACompare & 0xFF00) >> 8);
     byte lower = timerACompare & 0xFF;
 
