@@ -163,7 +163,6 @@ void setup() {
 long lastMeasureReset = 2000;
 long lastPrint = millis();
 void loop() {
-    
     delay(250);
     lastMillis = millis();
 

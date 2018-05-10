@@ -23,3 +23,5 @@ Serial has started breaking on me. I think if I try to print too much at once it
 
 Good news. Screeching from hell is gone since I figured out timings and made the analog run at a different time than the radio SPI. I also ditched nRF interrupts on the Sender to make sure no SPI happened during an ADC conversion.
 
+Lowering the sampling rate on both sides to just under 20k helped a lot. I also changed around the code that plays the audio and it comes through fairly clearly now! I think it works!!
+
