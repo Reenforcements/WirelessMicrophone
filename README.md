@@ -6,9 +6,6 @@ This is a wireless microphone project that was created for ECE 387 (embedded sys
 
 # Summary
 
-Insert video here
-** A video of the wireless microphone in action. **
-
 When the user speaks into the 600 Ohm microphone, a small signal is generated on the wires leading off the microphone. This signal's amplitude is only about 10mV, so it has to be amplified before the Arduino can read it. Before being amplified, the weak signal from the microphone is added to a 2.5V DC signal. 2.5V DC is chosen specially as it is halfway between 5V and ground. This signal is fed into an operational amplifier, where the signal is amplified from ±2.010V to roughly 5V to 0V. This signal is fed into the Arduino's ADC, where it is sampled at nearly 20kHz. Every time 16 samples are read from the ADC, they're uploaded to the nRF24L01+. After 3 packets of 16 samples have been uploaded, the nRF24L01+ sends the samples to the receiver. The receiver picks up these samples and are downloaded by the Arduino on the receiving end. The Arduino uses an internal timer to write each sample out one at a time to the digital potentiometer at a rate of about 20kHz. The digital potentiometer is used as a DAC by acting as a voltage divider. This output voltage is then shifted from 5V to 0V to ±2.5V. The voltage is then attenuated to ±0.4V so it is within the right range to be connected to speakers.
 
 # Sending
