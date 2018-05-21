@@ -44,8 +44,8 @@ Within the ADC's ISR (interrupt service routine), we store the completed convers
 
 # Receiving
 
-[![](https://github.com/Reenforcements/WirelessMicrophone/blob/master/ReadmeContent/Sending.png?raw=true)](https://github.com/Reenforcements/WirelessMicrophone/blob/master/ReadmeContent/Sending.png?raw=true)
-**Figure 1 - The circuit diagram for the transmitting portion of the wireless microphone.**
+[![](https://github.com/Reenforcements/WirelessMicrophone/blob/master/ReadmeContent/Receiving.png?raw=true)](https://github.com/Reenforcements/WirelessMicrophone/blob/master/ReadmeContent/Receiving.png?raw=true)
+**Figure 2 - The circuit diagram for the receiving portion of the wireless microphone.**
 
 ### Downloading Incoming Data
 
